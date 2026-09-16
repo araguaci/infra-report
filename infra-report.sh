@@ -8,9 +8,17 @@
 # ============================================================================
 set -euo pipefail
 
-VERSION="1.5.0"
+VERSION="1.5.1"
 SCRIPT_NAME="$(basename "$0")"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlinks (ex.: /usr/local/bin/infra-report → .../lib/infra-report/)
+_script_src="${BASH_SOURCE[0]}"
+while [[ -L "$_script_src" ]]; do
+  _script_dir="$(cd "$(dirname "$_script_src")" && pwd)"
+  _script_src="$(readlink "$_script_src")"
+  [[ "$_script_src" != /* ]] && _script_src="${_script_dir}/${_script_src}"
+done
+SCRIPT_DIR="$(cd "$(dirname "$_script_src")" && pwd)"
+unset _script_src _script_dir
 HOST_TARGET=""
 JSON_OUT=""
 HTML_OUT=""

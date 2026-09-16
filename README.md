@@ -2,7 +2,7 @@
 
 Auditoria local de infraestrutura (portas, firewall, SSH, HTTP/TLS, Docker, hardening) com relatório JSON + HTML — **sem expor** o resultado na internet.
 
-Versão atual: **1.5.0** (`infra-report --version`).
+Versão atual: **1.5.1** (`infra-report --version`).
 
 > O relatório contém achados de segurança. Não publique em site público, Caddy/nginx aberto, Portainer ou qualquer URL externa.
 
