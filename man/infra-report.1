@@ -1,0 +1,62 @@
+.\" Man page for infra-report
+.TH INFRA-REPORT 1 "September 2026" "infra-report 1.5.0" "User Commands"
+.SH NAME
+infra-report \- auditoria local de infraestrutura e relatório HTML/JSON
+.SH SYNOPSIS
+.B infra-report
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+Coleta informações de sistema, portas, firewall, SSH, HTTP/TLS, Docker e
+hardening no host local. Gera
+.I /tmp/infra-report.json
+e
+.I /tmp/infra-report.html
+(por padrão) para visualização local.
+.P
+Não publique o relatório em URLs públicas; contém achados de segurança.
+.SH OPTIONS
+.TP
+.B \-\-host \fIHOST\fR
+Testa HTTP/HTTPS em HOST (além de localhost).
+.TP
+.B \-\-json \fIFILE\fR
+Caminho do JSON de saída (HTML irmão .html se \-\-html omitido).
+.TP
+.B \-\-html \fIFILE\fR
+Caminho explícito do HTML.
+.TP
+.B \-\-render\-py \fIPATH\fR
+Caminho de infra_report_render.py (padrão: ao lado do script).
+.TP
+.B \-\-timeout \fIN\fR
+Timeout dos probes em segundos (padrão: 5).
+.TP
+.B \-V, \-\-version
+Mostra a versão e sai.
+.TP
+.B \-h, \-\-help
+Mostra a ajuda e sai.
+.SH ENVIRONMENT
+.TP
+.B INFRA_REPORT_RENDER
+Override do caminho do renderizador Python.
+.SH FILES
+.TP
+.I /usr/local/lib/infra-report/
+Arquivos instalados por
+.BR install.sh .
+.TP
+.I /tmp/infra-report.json
+.TQ
+.I /tmp/infra-report.html
+Saídas padrão.
+.SH EXAMPLES
+.nf
+sudo infra-report --json /tmp/infra-report.json
+sudo infra-report --host exemplo.com --json /tmp/infra-report.json
+.fi
+.SH SEE ALSO
+ss(8), curl(1), openssl(1), sshd(8)
+.SH NOTES
+Requer Bash 4+, python3 (≥3.8), ss, curl e openssl.
+Visualize o HTML via túnel SSH e http.server em 127.0.0.1 — ver README.
