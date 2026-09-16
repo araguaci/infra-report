@@ -25,7 +25,7 @@ Uso: sudo bash install.sh [--uninstall]
 Instala em:
   ${LIBDIR}/infra-report.sh
   ${LIBDIR}/infra_report_render.py
-  ${BINDIR}/infra-report  (symlink)
+  ${BINDIR}/infra-report  (wrapper)
   ${MANDIR}/infra-report.1
 EOF
       exit 0
@@ -50,9 +50,19 @@ do_install() {
   install -m 0755 "${SRC_DIR}/infra-report.sh" "${LIBDIR}/infra-report.sh"
   install -m 0644 "${SRC_DIR}/infra_report_render.py" "${LIBDIR}/infra_report_render.py"
   install -m 0644 "${SRC_DIR}/man/infra-report.1" "${MANDIR}/infra-report.1"
-  ln -sfn "../lib/infra-report/infra-report.sh" "${BINDIR}/infra-report"
 
-  echo "Instalado:"
+  # Wrapper (não symlink): BASH_SOURCE aponta para o .sh real em LIBDIR
+  rm -f "${BINDIR}/infra-report"
+  cat >"${BINDIR}/infra-report" <<EOF
+#!/usr/bin/env bash
+exec "${LIBDIR}/infra-report.sh" "\$@"
+EOF
+  chmod 0755 "${BINDIR}/infra-report"
+
+  local ver
+  ver="$("${LIBDIR}/infra-report.sh" --version 2>/dev/null || echo "?")"
+
+  echo "Instalado: ${ver}"
   echo "  ${BINDIR}/infra-report"
   echo "  ${LIBDIR}/"
   echo "  ${MANDIR}/infra-report.1"

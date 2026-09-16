@@ -8,7 +8,7 @@
 # ============================================================================
 set -euo pipefail
 
-VERSION="1.5.1"
+VERSION="1.5.2"
 SCRIPT_NAME="$(basename "$0")"
 # Resolve symlinks (ex.: /usr/local/bin/infra-report → .../lib/infra-report/)
 _script_src="${BASH_SOURCE[0]}"

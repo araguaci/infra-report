@@ -2,7 +2,7 @@
 
 Auditoria local de infraestrutura (portas, firewall, SSH, HTTP/TLS, Docker, hardening) com relatório JSON + HTML — **sem expor** o resultado na internet.
 
-Versão atual: **1.5.1** (`infra-report --version`).
+Versão atual: **1.5.2** (`infra-report --version`).
 
 > O relatório contém achados de segurança. Não publique em site público, Caddy/nginx aberto, Portainer ou qualquer URL externa.
 
@@ -29,7 +29,8 @@ sudo apk add iproute2 curl openssl python3 bash
 |---------|--------|
 | `infra-report.sh` | Coleta e achados |
 | `infra_report_render.py` | Monta JSON + HTML (ao lado do `.sh`) |
-| `install.sh` | Instala em `/usr/local` (symlink + man) |
+| `install.sh` | Instala em `/usr/local` (wrapper + man) |
+| `uninstall.sh` | Remove a instalação de `/usr/local` |
 | `man/infra-report.1` | Manual (`man infra-report`) |
 | `/tmp/infra-report.json` | Dados (padrão) |
 | `/tmp/infra-report.html` | Página do relatório (padrão) |
@@ -42,14 +43,16 @@ No diretório do projeto (ou após copiar o pacote):
 
 ```bash
 sudo bash install.sh
-# Remove: sudo bash install.sh --uninstall
+sudo bash uninstall.sh
 # Prefixo custom: PREFIX=/opt sudo bash install.sh
+#                 PREFIX=/opt sudo bash uninstall.sh
+# Alternativa:    sudo bash install.sh --uninstall
 ```
 
 Isso instala:
 
 - `/usr/local/lib/infra-report/` — scripts
-- `/usr/local/bin/infra-report` — symlink
+- `/usr/local/bin/infra-report` — wrapper (executa o `.sh` em `lib/`)
 - `/usr/local/share/man/man1/infra-report.1`
 
 ```bash
