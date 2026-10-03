@@ -2,7 +2,7 @@
 
 Auditoria local de infraestrutura (portas, firewall, SSH, HTTP/TLS, Docker, hardening) com relatório JSON + HTML — **sem expor** o resultado na internet.
 
-Versão atual: **1.5.2** (`infra-report --version`).
+Versão atual: **1.5.3** (`infra-report --version`).
 
 > O relatório contém achados de segurança. Não publique em site público, Caddy/nginx aberto, Portainer ou qualquer URL externa.
 
@@ -184,3 +184,25 @@ ssh -N -L 8765:127.0.0.1:8765 USER@SEU_HOST
 ```
 
 **Browser:** http://127.0.0.1:8765/infra-report.html
+
+## Frota VPS (comparativo & relatórios individuais)
+
+Em `vps/` ficam os relatórios JSON de cada host (`infra-report-vps-*.json`), o comparativo consolidado e os **relatórios individuais completos em HTML**:
+
+```bash
+cd vps
+python3 build_fleet.py    # gera index.html + infra-report-vps-*.html para cada VPS
+python3 -m http.server 8766 --bind 127.0.0.1
+# http://127.0.0.1:8766/
+```
+
+### Arquivos gerados em `vps/`:
+- **`index.html`** — Painel comparativo consolidado da frota, com cálculo de aptidão (produção, staging, laboratório) e botões de acesso direto a cada servidor.
+- **`infra-report-vps-ainativo.html`** — Relatório individual detalhado do servidor **AI Nativo** (portas, firewall, SSH, recursos de CPU/RAM/disco, Docker, hardening e achados).
+- **`infra-report-vps-artesdosul.html`** — Relatório individual detalhado do servidor **Artes do Sul**.
+- **`infra-report-vps-orbitall.html`** — Relatório individual detalhado do servidor **Orbitall**.
+
+Cada relatório individual inclui barra de navegação no topo para retornar ao comparativo ou alternar entre os servidores diretamente.
+
+Plano Hermes Agent (ops no orbitall): [docs/estrategia/HERMES-AGENT-MAPEAMENTO-PLANO.md](../docs/estrategia/HERMES-AGENT-MAPEAMENTO-PLANO.md).
+

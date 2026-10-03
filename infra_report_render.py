@@ -447,12 +447,60 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     justify-content: space-between;
     font-size: .72rem;
     color: var(--muted);
+  .fleet-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: .75rem 1.1rem;
+    margin-bottom: 1.5rem;
+    font-size: .84rem;
+  }
+  .fleet-nav a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .fleet-nav a:hover {
+    text-decoration: underline;
+  }
+  .fleet-nav .fleet-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem .6rem;
+  }
+  .fleet-nav .fleet-links span {
+    color: var(--muted);
+    font-size: .78rem;
     font-family: var(--font-mono);
+  }
+  .fleet-nav .nav-pill {
+    font-family: var(--font-mono);
+    font-size: .75rem;
+    padding: .2rem .55rem;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.5);
+    color: var(--ink);
+    border-radius: 2px;
+  }
+  .fleet-nav .nav-pill:hover {
+    background: rgba(15,107,76,.1);
+    border-color: var(--accent);
+  }
+  .fleet-nav .nav-pill.active {
+    background: var(--ink);
+    color: #f4faf6;
+    border-color: var(--ink);
   }
 </style>
 </head>
 <body>
   <div class="wrap">
+    __NAV_HEADER__
     <p class="brand">Infra Report</p>
     <p class="lede" id="lede">Auditoria de portas, firewall, SSH, HTTP/HTTPS, Docker e hardening.</p>
     <div class="meta" id="meta"></div>
@@ -847,22 +895,24 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 """
 
 
-def render_html(report: dict) -> str:
+def render_html(report: dict, nav_header: str = "") -> str:
     host = report.get("host") or report.get("system", {}).get("hostname") or "host"
     payload = json.dumps(report, ensure_ascii=False)
     # Evita quebrar o script embutido
     payload = payload.replace("</", "<\\/")
     return (
         HTML_TEMPLATE.replace("__HOST__", host)
+        .replace("__NAV_HEADER__", nav_header)
         .replace("__REPORT_JSON__", payload)
     )
 
 
 def main() -> None:
-    p = argparse.ArgumentParser()
-    p.add_argument("--tmp", required=True)
-    p.add_argument("--json-out", required=True)
-    p.add_argument("--html-out", required=True)
+    p = argparse.ArgumentParser(description="Renderiza relatório do infra-report em JSON e HTML.")
+    p.add_argument("--tmp", required=False, default="", help="Diretório com arquivos temporários da coleta")
+    p.add_argument("--json-in", required=False, default="", help="Arquivo JSON de relatório já existente")
+    p.add_argument("--json-out", required=False, default="", help="Arquivo JSON de saída")
+    p.add_argument("--html-out", required=True, help="Arquivo HTML de saída")
     p.add_argument("--version", default="1.1.0")
     p.add_argument("--crit", default="0")
     p.add_argument("--warn", default="0")
@@ -871,12 +921,23 @@ def main() -> None:
     p.add_argument("--host-target", default="")
     args = p.parse_args()
 
-    report = build_report(args)
-    json_path = Path(args.json_out)
+    if args.json_in:
+        json_in_path = Path(args.json_in)
+        if not json_in_path.exists():
+            raise SystemExit(f"Arquivo não encontrado: {json_in_path}")
+        report = json.loads(json_in_path.read_text(encoding="utf-8"))
+    elif args.tmp:
+        report = build_report(args)
+    else:
+        p.error("É obrigatório informar --tmp ou --json-in.")
+
+    if args.json_out:
+        json_path = Path(args.json_out)
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        json_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+
     html_path = Path(args.html_out)
-    json_path.parent.mkdir(parents=True, exist_ok=True)
     html_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     html_path.write_text(render_html(report), encoding="utf-8")
 
 

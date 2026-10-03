@@ -8,7 +8,7 @@
 # ============================================================================
 set -euo pipefail
 
-VERSION="1.5.2"
+VERSION="1.5.3"
 SCRIPT_NAME="$(basename "$0")"
 # Resolve symlinks (ex.: /usr/local/bin/infra-report → .../lib/infra-report/)
 _script_src="${BASH_SOURCE[0]}"
@@ -739,7 +739,7 @@ print(json.dumps({
 }
 
 probe_tls() {
-  local host="$1" port="${2:-443}"
+  local host="$1" port="${2:-443}" sni="${3:-$1}"
   echo ""
   echo -e "  ${BOLD}→ TLS ${host}:${port}${N}"
 
@@ -748,8 +748,18 @@ probe_tls() {
     return
   fi
 
+  # SNI com IP literal costuma falhar/pendurar; use hostname amigável quando host for IP
+  if [[ "$sni" =~ ^[0-9.]+$ || "$sni" == "::1" ]]; then
+    sni="localhost"
+  fi
+
   local out
-  out="$(echo | timeout "$TIMEOUT_SEC" openssl s_client -connect "${host}:${port}" -servername "$host" 2>/dev/null || true)"
+  # -quiet reduz ruído; timeout -k mata openssl se ignorar SIGTERM
+  out="$(echo | timeout -k 2 "${TIMEOUT_SEC}" openssl s_client -connect "${host}:${port}" -servername "$sni" -brief 2>/dev/null || true)"
+  if [[ -z "$out" ]] || ! echo "$out" | grep -qiE 'Protocol version|BEGIN CERTIFICATE|Verification'; then
+    # fallback sem -brief (algumas builds não têm)
+    out="$(echo | timeout -k 2 "${TIMEOUT_SEC}" openssl s_client -connect "${host}:${port}" -servername "$sni" 2>/dev/null || true)"
+  fi
   if [[ -z "$out" ]] || ! echo "$out" | grep -q 'BEGIN CERTIFICATE'; then
     finding WARN "Não foi possível obter certificado em ${host}:${port}" "" "tls"
     python3 -c 'import json,sys; print(json.dumps({"host":sys.argv[1],"port":int(sys.argv[2]),"ok":False}, ensure_ascii=False))' \
@@ -758,14 +768,14 @@ probe_tls() {
   fi
 
   local subject issuer not_after proto days=""
-  subject="$(echo "$out" | openssl x509 -noout -subject 2>/dev/null | sed 's/subject=//')"
-  issuer="$(echo "$out" | openssl x509 -noout -issuer 2>/dev/null | sed 's/issuer=//')"
-  not_after="$(echo "$out" | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)"
-  proto="$(echo "$out" | grep -E 'Protocol  :' | tail -n1 | awk -F: '{print $2}' | xargs)"
+  subject="$(echo "$out" | openssl x509 -noout -subject 2>/dev/null | sed 's/subject=//' || true)"
+  issuer="$(echo "$out" | openssl x509 -noout -issuer 2>/dev/null | sed 's/issuer=//' || true)"
+  not_after="$(echo "$out" | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2 || true)"
+  proto="$(echo "$out" | grep -E 'Protocol( version)? *:' | tail -n1 | awk -F: '{print $2}' | xargs || true)"
 
-  kv "Subject" "$subject"
-  kv "Issuer" "$issuer"
-  kv "Validade até" "$not_after"
+  kv "Subject" "${subject:-n/a}"
+  kv "Issuer" "${issuer:-n/a}"
+  kv "Validade até" "${not_after:-n/a}"
   kv "Protocolo" "${proto:-n/a}"
 
   local end_epoch now_epoch
@@ -785,10 +795,10 @@ probe_tls() {
     fi
   fi
 
-  if echo "$out" | grep -qE 'Protocol  : TLSv1\.0|Protocol  : TLSv1\.1|Protocol  : SSLv'; then
+  if echo "$out" | grep -qE 'Protocol  : TLSv1\.0|Protocol  : TLSv1\.1|Protocol  : SSLv|Protocol version: TLSv1\.0|Protocol version: TLSv1\.1'; then
     finding CRIT "Protocolo TLS legado em uso ($proto)" \
       "Desabilite SSLv3/TLS1.0/TLS1.1; use TLS 1.2+." "tls"
-  elif [[ "$proto" == *TLSv1.2* || "$proto" == *TLSv1.3* ]]; then
+  elif [[ "$proto" == *TLSv1.2* || "$proto" == *TLSv1.3* || "$proto" == *TLS1.2* || "$proto" == *TLS1.3* ]]; then
     finding OK "Protocolo moderno: $proto" "" "tls"
   fi
 
